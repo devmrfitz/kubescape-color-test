@@ -1,0 +1,82 @@
+name: "Demonstration Workflow"
+defaults:
+  run:
+    shell: bash
+on:
+  workflow_dispatch:
+  pull_request_target:
+    branches:
+      - "main"
+  push:
+    branches:
+      - "*"
+jobs:
+
+jobs:
+  prepare-security-scans:
+    name: "Prepare Security Scans"
+    runs-on: ubuntu-20.04
+    env:
+      RENDERED_CHART_FILENAME: "scan-tpl.yml"
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          submodules: 'true'
+
+      - name: Render helm template
+        run: |
+          VERSION=$(cat './VERSION.txt')
+          helm repo add bitnami https://charts.bitnami.com/bitnami
+          helm repo add nats https://nats-io.github.io/k8s/helm/charts/
+          helm repo add keptn https://charts.keptn.sh
+          helm repo update
+          helm template keptn/keptn -n keptn --name-template keptn --version 0.17.0 > ${{ env.RENDERED_CHART_FILENAME }}
+
+      - name: Upload rendered chart as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: rendered-helm-chart
+          path: ${{ env.RENDERED_CHART_FILENAME }}
+
+  security-scans:
+    name: "Security Scans"
+    needs: prepare-security-scans
+    runs-on: ubuntu-20.04
+    env:
+      CHART_TO_SCAN: "scans/scan-tpl.yml"
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - tool: "kubescape"
+            kubescape-framework: "nsa"
+          - tool: "kubescape"
+            kubescape-framework: "mitre"
+          - tool: "kubescape"
+            kubescape-framework: "ARMOBest"
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          submodules: 'true'
+
+      - name: Download helm template
+        id: download_helm_chart
+        uses: actions/download-artifact@v3
+        with:
+          name: rendered-helm-chart
+          path: scans
+
+      - name: Kubescape Scan
+        if: matrix.tool == 'kubescape'
+        env:
+          FAILURE_PERCENTAGE: 10
+        run: |
+          echo "::group::Kubescape installation"
+          curl -s https://raw.githubusercontent.com/armosec/kubescape/master/install.sh | /bin/bash
+          echo "::endgroup::"
+          # Docs on how to configure exceptions: https://hub.armosec.io/docs/exceptions
+          kubescape scan framework ${{ matrix.kubescape-framework }} -v -t ${{ env.FAILURE_PERCENTAGE }} --exceptions ./.github/kubescape-config.json ${{ env.CHART_TO_SCAN }}
