@@ -1,0 +1,1 @@
+# kubescape-color-test
