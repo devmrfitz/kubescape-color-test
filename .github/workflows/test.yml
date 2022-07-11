@@ -25,8 +25,6 @@ jobs:
 
       - name: Render helm template
         run: |
-          helm repo add bitnami https://charts.bitnami.com/bitnami
-          helm repo add nats https://nats-io.github.io/k8s/helm/charts/
           helm repo add keptn https://charts.keptn.sh
           helm repo update
           helm template keptn/keptn -n keptn --name-template keptn --version 0.17.0 > ${{ env.RENDERED_CHART_FILENAME }}
@@ -77,4 +75,4 @@ jobs:
           curl -s https://raw.githubusercontent.com/armosec/kubescape/master/install.sh | /bin/bash
           echo "::endgroup::"
           # Docs on how to configure exceptions: https://hub.armosec.io/docs/exceptions
-          kubescape scan framework ${{ matrix.kubescape-framework }} -v -t ${{ env.FAILURE_PERCENTAGE }} --exceptions ./.github/kubescape-config.json ${{ env.CHART_TO_SCAN }}
+          kubescape scan framework ${{ matrix.kubescape-framework }} -t ${{ env.FAILURE_PERCENTAGE }} --exceptions ./.github/kubescape-config.json ${{ env.CHART_TO_SCAN }}
