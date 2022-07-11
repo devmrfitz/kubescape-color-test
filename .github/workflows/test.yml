@@ -11,8 +11,6 @@ on:
     branches:
       - "*"
 jobs:
-
-jobs:
   prepare-security-scans:
     name: "Prepare Security Scans"
     runs-on: ubuntu-20.04
