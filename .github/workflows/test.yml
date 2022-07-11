@@ -25,7 +25,6 @@ jobs:
 
       - name: Render helm template
         run: |
-          VERSION=$(cat './VERSION.txt')
           helm repo add bitnami https://charts.bitnami.com/bitnami
           helm repo add nats https://nats-io.github.io/k8s/helm/charts/
           helm repo add keptn https://charts.keptn.sh
