@@ -28,7 +28,6 @@ jobs:
           helm repo add keptn https://charts.keptn.sh
           helm repo update
           helm template keptn/keptn -n keptn --name-template keptn --version 0.17.0 > ${{ env.RENDERED_CHART_FILENAME }}
-
       - name: Upload rendered chart as artifact
         uses: actions/upload-artifact@v3
         with:
@@ -46,11 +45,7 @@ jobs:
       matrix:
         include:
           - tool: "kubescape"
-            kubescape-framework: "nsa"
-          - tool: "kubescape"
             kubescape-framework: "mitre"
-          - tool: "kubescape"
-            kubescape-framework: "ARMOBest"
     steps:
       - name: Check out code
         uses: actions/checkout@v3
