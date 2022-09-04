@@ -60,14 +60,41 @@ jobs:
           name: rendered-helm-chart
           path: scans
 
-      - name: Kubescape Scan
+      - uses: actions/setup-go@v3
+        with:
+          go-version: '>=1.17.0'
+
+      - name: Build Kubescape
         if: matrix.tool == 'kubescape'
         env:
           FAILURE_PERCENTAGE: 10
           KS_LOGGER_NAME: "pretty"
         run: |
-          echo "::group::Kubescape installation"
-          curl -s https://raw.githubusercontent.com/armosec/kubescape/master/install.sh | /bin/bash
-          echo "::endgroup::"
+          echo "::group::Kubescape build"
+          sudo apt-get install git cmake -y
+          cd /tmp
+          git clone https://github.com/devmrfitz/kubescape.git 
+          git clone https://github.com/devmrfitz/go-logger.git 
+          cd kubescape
+          git checkout dev
+          go mod edit -replace github.com/kubescape/go-logger=../go-logger
+          make libgit2
+          make build
+          
+      - name: Kubescape Scan [Colored]
+        if: matrix.tool == 'kubescape'
+        env:
+          FAILURE_PERCENTAGE: 10
+          KS_LOGGER_NAME: "pretty"
+        run: |
           # Docs on how to configure exceptions: https://hub.armosec.io/docs/exceptions
-          kubescape scan framework ${{ matrix.kubescape-framework }} -t ${{ env.FAILURE_PERCENTAGE }} --exceptions ./.github/kubescape-config.json ${{ env.CHART_TO_SCAN }}
+          /tmp/kubescape/kubescape scan framework ${{ matrix.kubescape-framework }} -t ${{ env.FAILURE_PERCENTAGE }} --enable-color ${{ env.CHART_TO_SCAN }}
+          
+      - name: Kubescape Scan [Standard]
+        if: matrix.tool == 'kubescape'
+        env:
+          FAILURE_PERCENTAGE: 10
+          KS_LOGGER_NAME: "pretty"
+        run: |
+          # Docs on how to configure exceptions: https://hub.armosec.io/docs/exceptions
+          /tmp/kubescape/kubescape scan framework ${{ matrix.kubescape-framework }} -t ${{ env.FAILURE_PERCENTAGE }} ${{ env.CHART_TO_SCAN }}          
